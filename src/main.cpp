@@ -51,12 +51,12 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            // rewind the audio by ten seconds backwards
+            // rewind the audio by five seconds backwards
             if(event == WindowController::LeftArrowClicked || event == WindowController::LeftRewindButtonClicked) {
                 audio.setPlayingOffset(sf::Time(max(std::chrono::milliseconds(0), std::chrono::milliseconds(audio.getPlayingOffset().asMilliseconds() - 5000))));
             }
 
-            // rewind the audio by ten seconds forward
+            // rewind the audio by five seconds forward
             if(event == WindowController::RightArrowClicked || event == WindowController::RightRewindButtonClicked) {
                 audio.setPlayingOffset(sf::Time(min(std::chrono::milliseconds(audioDuration), std::chrono::milliseconds(audio.getPlayingOffset().asMilliseconds() + 5000))));
             }
