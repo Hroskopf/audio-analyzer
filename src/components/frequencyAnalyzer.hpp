@@ -4,6 +4,7 @@
 #include <cmath>
 #include <vector>
 #include <complex>
+#include <algorithm>
 #include <fftw3.h>
 
 constexpr double PI = 3.14159265358979323846;
@@ -26,6 +27,21 @@ private:
 
     std::vector<std::vector<double>>frequencies_dB; // output array. for each block -> frequency magnitudes of the audio divided into binsNum bins
 
+    // converts interleaved multi-channel samples (L,R,L,R,...) into mono by averaging each frame.
+    // Analyzing the interleaved stream directly would mirror low-frequency energy up near Nyquist.
+    static std::vector<int> downmix_to_mono(const std::vector<int>& data, int channels) {
+        if(channels <= 1) return data;
+        std::vector<int> mono(data.size() / channels);
+        for(size_t i = 0;i < mono.size();i++) {
+            long long sum = 0;
+            for(int c = 0;c < channels;c++) {
+                sum += data[i * channels + c];
+            }
+            mono[i] = (int)(sum / channels);
+        }
+        return mono;
+    }
+
     // splits input data into blocks of given size
     std::vector<std::vector<int>>split_to_blocks(const std::vector<int>&data, const int block_size_) const {
 
@@ -42,7 +58,7 @@ private:
         double max_data_value = 32768; // for normalization
         std::vector<double>result(size);
         for(size_t i = 0;i < data.size();i++) {
-            double window = 0.5 * (1 - cos(2 * PI * i / size));
+            double window = 0.5 * (1 - cos(2 * PI * i / data.size())); // window spans the real data, not the zero padding
             result[i] = ((double)data[i] / max_data_value) * window;
         }
         return result;
@@ -66,11 +82,13 @@ private:
     }
 
     // gets an output array from a DFT transform. Counts the magnitudes and converts it to dBs
+    // `in` is already the half-spectrum of a real FFT of length 2 * (in.size() - 1)
     std::vector<double> to_dB(const std::vector<std::complex<double>>& in) const {
-        std::vector<double> result(in.size() / 2 + 1);
+        const double n = 2.0 * (in.size() - 1); // original FFT size
+        std::vector<double> result(in.size());
         for(size_t i = 0;i < result.size();i++) {
             double magnitude = std::abs(in[i]);
-            result[i] = 20 * log10(std::max(magnitude * 4.0 / in.size(), 1e-10)); 
+            result[i] = 20 * log10(std::max(magnitude * 4.0 / n, 1e-10));
 
         }
         return result;
@@ -127,14 +145,14 @@ private:
 public:
 
     // data_ is an array of samples of whole audio. sampleRate is number of samples per each second. binsNum_ is a needed number of bins of output frequencies 
-    FrequencyAnalyzer(const std::vector<int>& data_, int sampleRate_, int binsNum_, int numberOfChannels_): 
-        input_data(data_), sampleRate(sampleRate_), binsNum(binsNum_), block_num(((data_.size() + block_size - 1) / block_size)), maxFreq(sampleRate_ / 2), numberOfChannels(numberOfChannels_) {
+    FrequencyAnalyzer(const std::vector<int>& data_, int sampleRate_, int binsNum_, int numberOfChannels_):
+        input_data(downmix_to_mono(data_, numberOfChannels_)), sampleRate(sampleRate_), binsNum(binsNum_), block_num(((data_.size() / std::max(numberOfChannels_, 1) + block_size - 1) / block_size)), maxFreq(sampleRate_ / 2), numberOfChannels(numberOfChannels_) {
             
         auto blocks = split_to_blocks(input_data, block_size);
 
         frequencies_dB.resize(block_num);
 
-        auto frequencies = get_frequencies(block_size, sampleRate);
+        auto frequencies = get_frequencies(fft_size, sampleRate); // magnitudes come from the padded FFT, so the axis must too
 
         for(int i = 0;i < block_num;i++) {
             auto block = prepare_data(blocks[i], fft_size);
@@ -147,8 +165,10 @@ public:
 
     // given a millisecond of a sound, returns an array of numBins elements -> dBs of each frequency.
     std::vector<double> get_frequency_magnitudes(long long millisecond) {
-        int idx = millisecond * sampleRate / (1000 * block_size) * numberOfChannels;
-        return frequencies_dB[idx];
+        // the data is mono after downmixing, so the block index no longer depends on the channel count
+        long long idx = millisecond * sampleRate / (1000 * block_size);
+        idx = std::min(idx, (long long)block_num - 1); // the last millisecond maps just past the final block
+        return frequencies_dB[std::max(idx, 0LL)];
     }
 
 };
