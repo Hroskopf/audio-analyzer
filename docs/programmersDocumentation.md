@@ -28,10 +28,10 @@ src
 │   └── windowController.hpp
 ├── main.cpp
 ├── Makefile
-├── README.md
 ├── resources
 │   └── fonts
-│       └── Calibri.ttf
+│       ├── DejaVuSans.ttf
+│       └── FONT-LICENSE
 └── samples
     ├── 440+880HZ.mp3
     ├── 440HZ.mp3
