@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    # macOS runner because the project needs SFML >= 3.0, which Ubuntu's apt
+    # doesn't ship yet — Homebrew has it, and this mirrors `make install-libraries`.
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install fftw sfml
+
+      - name: Build
+        run: make -C src
+
+      - name: Smoke test (binary exists and links)
+        run: file src/audioanalyzer
