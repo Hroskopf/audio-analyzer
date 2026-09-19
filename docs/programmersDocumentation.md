@@ -1,16 +1,16 @@
-# AudioAnalyzer: programmers' documentation
+# AudioAnalyzer: programmer documentation
 
 ## Overview
 
-This is programm for playing audio and showing a plot of spectral analysis of played sound. When running, you will see a GUI with a plot area of frequencies, a progress bar and buttons for basic interaction with played audio.
+This is a program for playing audio and showing a plot of the spectral analysis of the played sound. When it runs, you see a GUI with a plot area for the frequencies, a progress bar, and buttons for basic interaction with the played audio.
 
 ## Libraries and installation
 
-The project uses two external lybraries: [SFML](https://www.sfml-dev.org/) (>= 3.0.0) for a GUI and working with audio and [FFTW](https://www.fftw.org/) for a frequency DFT analysis.
+The project uses two external libraries: [SFML](https://www.sfml-dev.org/) (>= 3.0.0) for the GUI and audio handling, and [FFTW](https://www.fftw.org/) for the frequency (DFT) analysis.
 
-- On MacOS and Linux, the libraries are installed via some built-in package manager (`brew` on MacOS; `apt`, `dnf` or `pacman` on Linux). If you want to install libraries, do `make install-libraries` and then create an executable with `make` command.
+- On macOS and Linux, the libraries are installed via the system package manager (`brew` on macOS; `apt`, `dnf`, or `pacman` on Linux). To install them, run `make install-libraries`, then create the executable with `make`.
 
-- On Winsows, the libraries are installed with `vcpkg`. To do this, `install-deps.bat` should be run. After this the executable file is created using a CMake. This is done by `build.bat` script.
+- On Windows, the libraries are installed with `vcpkg` by running `install-deps.bat`. The executable is then created using CMake via the `build.bat` script.
 
 ## Project structure
 
@@ -41,66 +41,66 @@ src
     └── PureScale.mp3
 ```
 
-The `components` directory is for all of header files that are needed for the program. `main.cpp` file is the key file that is executed. In `resources` folder there are a folder with a font that is written on screen. `samples` directory contains some sample audio files that can be run to see the program working. 
+The `components` directory holds all the header files the program needs. `main.cpp` is the entry point. The `resources` folder contains the font used for on-screen text. The `samples` directory contains sample audio files you can play to see the program in action.
 
-## How does it work
+## How it works
 
-Everything that is doen can be divided into three parts:
+Everything the program does can be divided into three parts:
 
 - spectral analysis of the audio file
 
-- GUI for showing everything on the window
+- a GUI for showing everything in the window
 
-- make first two parts work together
+- making the first two parts work together
 
 ## Spectral analysis
 
-It is done by [FrequencyAnalyzer](../src/components/frequencyAnalyzer.hpp) class. This part uses the `FFTW` library.
+This is done by the [FrequencyAnalyzer](../src/components/frequencyAnalyzer.hpp) class, using the `FFTW` library.
 
-All the heavy computations (FFT algorithm) is done once, when the class is created. After that when we need the spectral data at some moment, we just return it from memory.
+All the heavy computation (the FFT itself) happens once, when the class is constructed. After that, whenever the spectral data for some moment is needed, it is simply returned from memory.
 
-For analaing data, we do next steps:
+To analyze the data, we take the following steps:
 
-- Divide samples into blocks of size 2048.
+- Divide the samples into blocks of size 2048.
 
-- Prepare each block for the FFT. In this step we expand the block to size 8192, normalize values and apply the Hann windowing function (for smoother transitions between blocks)
+- Prepare each block for the FFT. In this step the block is expanded to size 8192, its values are normalized, and the Hann window function is applied (for smoother transitions between blocks).
 
-- Then we do the real-to-complex DFT on each block
+- Run the real-to-complex DFT on each block.
 
-- After that we convert frequency magnitudes into dB, so that it can be shown on screen.
+- Convert the frequency magnitudes to dB so they can be shown on screen.
 
-- Finally, we need to get `binsNum` bins, s.t. number of frequencies on each bin decrease exponentally (because all the useful spectral data is in the lower range). For each bin we count the average dB value of frequencies.
+- Finally, group the frequencies into `binsNum` bins whose widths grow exponentially (because most of the useful spectral information is in the lower range). For each bin, the average dB value of its frequencies is computed.
 
 ## GUI
 
-GUI is written using a `SFML 3.0` library. 
+The GUI is written using the `SFML 3.0` library.
 
-The main components shown on the window are: play button, left and right rewind buttons, scroll bar and graph area for a frequency plot. Each such component is created in corresponding header file in [GUIcomponents](../src/components/GUIcomponents/) folder.
+The main components shown in the window are: a play button, left and right rewind buttons, a scroll bar, and a graph area for the frequency plot. Each component lives in its own header file in the [GUIcomponents](../src/components/GUIcomponents/) folder.
 
-Everything is put together by [WindowController](../src/components/windowController.hpp). It is responsible for creating the main window, draw every gui component with corresponding values and proccess window events.
+Everything is put together by the [WindowController](../src/components/windowController.hpp). It is responsible for creating the main window, drawing every GUI component with its current values, and processing window events.
 
-For 'interesting' events, the `EventType` enum created. When some such event occurs it is returned by `getEvent` function and needs to be proccesed in main file.
+For the events we care about, there is an `EventType` enum. When such an event occurs, it is returned by the `getEvent` function and handled in the main file.
 
 ## Putting logic and GUI together
 
-It is done by [main.cpp](../src/main.cpp) file.
+This happens in [main.cpp](../src/main.cpp).
 
-Firstly it uploads the input audio file, and pass it to the `FrequencyAnalyzer`. 
+First it loads the input audio file and passes it to the `FrequencyAnalyzer`.
 
-Then everything is done in main loop. At each iteration it needs to poll the events from the controller and procces them, update the state of gui components and draw everything on the window (in this order). This loop will be working untill the the window is closed.
+Everything else happens in the main loop. Each iteration polls events from the controller and processes them, updates the state of the GUI components, and draws everything in the window (in that order). The loop runs until the window is closed.
 
 ## Audio samples
 
-Some audio samples can be found in [samples](../src/samples/) folder:
+Some audio samples can be found in the [samples](../src/samples/) folder:
 
 - [440HZ.mp3](../src/samples/440HZ.mp3) is a pure sine wave of the A4 note. You should see a single peak on the plot.
 
 - [880HZ.mp3](../src/samples/880HZ.mp3) is an A5 note.
 
-- [440+880HZ.mp3](../src/samples/440+880HZ.mp3) is two notes played together (there should be two peaks on the plot)
+- [440+880HZ.mp3](../src/samples/440+880HZ.mp3) is the two notes played together (there should be two peaks on the plot).
 
-- [DrumKick.mp3](../src/samples/DrumKick.mp3) is a sound bass drum played repeteadly.
+- [DrumKick.mp3](../src/samples/DrumKick.mp3) is a bass drum sound played repeatedly.
 
 - [PureScale.mp3](../src/samples/PureScale.mp3) is a C-major scale played with pure sine waves.
 
-- [music.mp3](../src/samples/music.mp3) is just a sample of some song.
+- [music.mp3](../src/samples/music.mp3) is just a sample of a song.
