@@ -64,7 +64,7 @@ public:
     // width_ and height_ are dimensions of the whole area. (x_, y_) are the coordinates of top-left point of an area. max_value_ and min_value_ are the biggest and smallest possible value of some bar.
     GraphBox(float width_, float height_, float x_, float y_, float min_value_, float max_value_): height(height_), width(width_), 
 max_value(max_value_), min_value(min_value_),x(x_), y(y_), backgroundRect({width_, height_}), graph_area_x(x + width / 8), graph_area_y(y + height / 20), 
-graph_area_height(85 * height / 100), graph_area_width(4 * width / 5), font("resources/fonts/Calibri.ttf") {
+graph_area_height(85 * height / 100), graph_area_width(4 * width / 5), font("resources/fonts/DejaVuSans.ttf") {
 
         create_background_rect();
 
